@@ -91,6 +91,8 @@
   .b-no_show { background: #EFECE6; color: var(--muted); }
   .empty { text-align: center; color: var(--muted); padding: 36px; font-size: 14px; }
   .updated { font-size: 11px; color: var(--muted); text-align: right; margin-top: 16px; }
+  .footer { text-align: center; color: var(--muted); font-size: 11px; margin-top: 32px; letter-spacing: 0.4px; opacity: .75; }
+  .footer .sep { margin: 0 7px; opacity: .5; }
 
   @media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } .kpi .value { font-size: 30px; } }
   @media (max-width: 540px) { #app { padding: 18px 14px 40px; } .brand h1 { font-size: 19px; } .live span.txt { display: none; } }
@@ -142,6 +144,8 @@
     <div class="table-scroll" id="tablaWrap"></div>
     <div class="updated" id="updated"></div>
   </div>
+
+  <div class="footer">Tayanti · Panel interno de reservas<span class="sep">·</span>Actualización automática en tiempo real</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
