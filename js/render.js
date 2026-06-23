@@ -18,11 +18,16 @@ export function renderKpis(reservas) {
     (x) => x.fecha === hoy && ESTADOS_ACTIVOS.includes(x.estado)
   );
 
+  // Pendientes/Confirmadas: solo de hoy en adelante (lo accionable), igual que
+  // la tabla. Una reserva pendiente cuya fecha ya pasó es dato viejo y no debe
+  // inflar el KPI.
+  const proximas = reservas.filter((x) => x.fecha >= hoy);
+
   const vals = {
     'k-hoy': resHoyActivas.length,
     'k-com': resHoyActivas.reduce((s, x) => s + (x.personas || 0), 0),
-    'k-pen': reservas.filter((x) => x.estado === 'pendiente').length,
-    'k-con': reservas.filter((x) => x.estado === 'confirmada').length,
+    'k-pen': proximas.filter((x) => x.estado === 'pendiente').length,
+    'k-con': proximas.filter((x) => x.estado === 'confirmada').length,
   };
 
   if (!kpisBuilt) {
@@ -42,8 +47,11 @@ export function renderKpis(reservas) {
 
 // --- Gráfico por estado (dona) --------------------------------------------
 export function renderEstado(reservas) {
+  // Misma ventana que los KPIs y la tabla: de hoy en adelante.
+  const hoy = hoyPeru();
+  const proximas = reservas.filter((x) => x.fecha >= hoy);
   const counts = {};
-  reservas.forEach((x) => { counts[x.estado] = (counts[x.estado] || 0) + 1; });
+  proximas.forEach((x) => { counts[x.estado] = (counts[x.estado] || 0) + 1; });
   const keys = Object.keys(ESTADOS).filter((k) => counts[k]);
   const labels = keys.map((k) => ESTADOS[k].label);
   const data = keys.map((k) => counts[k]);
