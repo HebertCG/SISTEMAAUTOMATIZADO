@@ -109,6 +109,7 @@
 
   /* Modal de confirmación */
   .modal-overlay { position: fixed; inset: 0; background: rgba(33,31,27,.42); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; animation: fadeIn .18s ease both; }
+  .modal-overlay[hidden] { display: none; }
   .modal-card { width: 100%; max-width: 384px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 26px 26px 22px; box-shadow: var(--shadow-lg); animation: pop .3s var(--ease) both; }
   .modal-card h3 { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
   .modal-card p { color: var(--muted); font-size: 14px; margin: 10px 0 22px; line-height: 1.55; }
