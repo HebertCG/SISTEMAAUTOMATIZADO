@@ -76,7 +76,7 @@
   .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 
   .table-scroll { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; min-width: 520px; }
+  table { width: 100%; border-collapse: collapse; min-width: 640px; }
   thead th { text-align: left; font-size: 11px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 0 14px 12px; border-bottom: 1px solid var(--line); }
   tbody td { padding: 13px 14px; font-size: 14px; border-bottom: 1px solid var(--line-soft); }
   tbody tr { transition: background .18s var(--ease); }
@@ -93,6 +93,19 @@
   .updated { font-size: 11px; color: var(--muted); text-align: right; margin-top: 16px; }
   .footer { text-align: center; color: var(--muted); font-size: 11px; margin-top: 32px; letter-spacing: 0.4px; opacity: .75; }
   .footer .sep { margin: 0 7px; opacity: .5; }
+
+  .acciones { display: flex; gap: 6px; }
+  .btn-act { font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; font-family: inherit; white-space: nowrap; transition: background .15s var(--ease), border-color .15s var(--ease), transform .12s var(--ease); }
+  .btn-act:hover { transform: translateY(-1px); }
+  .btn-act:active { transform: translateY(0) scale(.97); }
+  .btn-act:disabled { opacity: .45; cursor: default; transform: none; }
+  .btn-act.confirmar { color: var(--green); background: var(--green-bg); border-color: #BFE3D2; }
+  .btn-act.confirmar:hover { background: #D5EEE2; }
+  .btn-act.completar { color: var(--accent); background: var(--accent-bg); border-color: #E4D0A7; }
+  .btn-act.completar:hover { background: #F1E4C9; }
+  .btn-act.cancelar { color: var(--red); background: var(--red-bg); border-color: #ECCBC1; }
+  .btn-act.cancelar:hover { background: #F2DAD1; }
+  .acciones-none { color: var(--muted); opacity: .5; }
 
   @media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } .kpi .value { font-size: 30px; } }
   @media (max-width: 540px) { #app { padding: 18px 14px 40px; } .brand h1 { font-size: 19px; } .live span.txt { display: none; } }
@@ -283,16 +296,49 @@ function renderDias(porDia) {
 }
 
 function renderTabla(r) {
-  const ahora = Date.now();
-  const prox = r.filter(x => new Date(x.fecha_hora).getTime() >= ahora - 3600000).slice(0, 30);
-  if (!prox.length) { $('tablaWrap').innerHTML = '<div class="empty">No hay reservas próximas.</div>'; return; }
+  const hoy = hoyPeru();
+  const prox = r.filter(x => x.fecha >= hoy).slice(0, 40);
+  if (!prox.length) { $('tablaWrap').innerHTML = '<div class="empty">No hay reservas para hoy ni próximas.</div>'; return; }
   const filas = prox.map(x => {
     const fecha = new Date(x.fecha_hora).toLocaleDateString('es-PE', { weekday: 'short', day: '2-digit', month: 'short' });
     const est = ESTADOS[x.estado] || { label: x.estado };
-    return `<tr><td class="name">${x.cliente || '—'}</td><td>${fecha}</td><td>${x.hora}</td><td>${x.personas}</td><td><span class="badge b-${x.estado}">${est.label}</span></td></tr>`;
+    return `<tr><td class="name">${x.cliente || '—'}</td><td>${fecha}</td><td>${x.hora}</td><td>${x.personas}</td><td><span class="badge b-${x.estado}">${est.label}</span></td><td>${accionesHTML(x)}</td></tr>`;
   }).join('');
-  $('tablaWrap').innerHTML = `<table><thead><tr><th>Cliente</th><th>Fecha</th><th>Hora</th><th>Personas</th><th>Estado</th></tr></thead><tbody>${filas}</tbody></table>`;
+  $('tablaWrap').innerHTML = `<table><thead><tr><th>Cliente</th><th>Fecha</th><th>Hora</th><th>Personas</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${filas}</tbody></table>`;
 }
+
+function accionesHTML(x) {
+  const id = x.id;
+  if (x.estado === 'pendiente') {
+    return '<div class="acciones">'
+      + `<button class="btn-act confirmar" data-accion="confirmada" data-id="${id}">Confirmar</button>`
+      + `<button class="btn-act cancelar" data-accion="cancelada" data-id="${id}">Cancelar</button>`
+      + '</div>';
+  }
+  if (x.estado === 'confirmada') {
+    return '<div class="acciones">'
+      + `<button class="btn-act completar" data-accion="completada" data-id="${id}">Completar</button>`
+      + `<button class="btn-act cancelar" data-accion="cancelada" data-id="${id}">Cancelar</button>`
+      + '</div>';
+  }
+  return '<span class="acciones-none">—</span>';
+}
+
+$('tablaWrap').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-accion]');
+  if (!btn) return;
+  const { accion, id } = btn.dataset;
+  if (accion === 'cancelada' && !confirm('¿Seguro que quieres cancelar esta reserva?')) return;
+  const grupo = btn.closest('.acciones');
+  grupo.querySelectorAll('button').forEach(b => b.disabled = true);
+  const { error } = await sb.from('reservations').update({ status: accion }).eq('id', id);
+  if (error) {
+    grupo.querySelectorAll('button').forEach(b => b.disabled = false);
+    alert('No se pudo actualizar la reserva: ' + error.message);
+    return;
+  }
+  cargar();
+});
 
 init();
 </script>
