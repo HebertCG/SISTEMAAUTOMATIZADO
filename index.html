@@ -107,6 +107,26 @@
   .btn-act.cancelar:hover { background: #F2DAD1; }
   .acciones-none { color: var(--muted); opacity: .5; }
 
+  /* Modal de confirmación */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(33,31,27,.42); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; animation: fadeIn .18s ease both; }
+  .modal-card { width: 100%; max-width: 384px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 26px 26px 22px; box-shadow: var(--shadow-lg); animation: pop .3s var(--ease) both; }
+  .modal-card h3 { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+  .modal-card p { color: var(--muted); font-size: 14px; margin: 10px 0 22px; line-height: 1.55; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .modal-actions button { height: 42px; padding: 0 20px; border-radius: 11px; font-weight: 600; font-size: 13.5px; font-family: inherit; cursor: pointer; border: 1px solid transparent; transition: background .2s var(--ease), transform .12s var(--ease), box-shadow .2s var(--ease), border-color .2s var(--ease), color .2s var(--ease); }
+  .modal-actions .m-ghost { background: var(--surface); color: var(--muted); border-color: var(--line); }
+  .modal-actions .m-ghost:hover { color: var(--text); border-color: var(--accent-soft); }
+  .modal-actions .m-ok { background: var(--accent); color: #fff; }
+  .modal-actions .m-ok:hover { background: #835C1F; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(156,111,40,.28); }
+  .modal-actions .m-ok.danger { background: var(--red); }
+  .modal-actions .m-ok.danger:hover { background: #A8472F; box-shadow: 0 6px 16px rgba(192,86,61,.28); }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--text); color: #fff; padding: 13px 20px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: var(--shadow-lg); z-index: 60; opacity: 0; pointer-events: none; transition: opacity .25s var(--ease), transform .25s var(--ease); max-width: 90vw; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.ok { background: var(--green); }
+  .toast.err { background: var(--red); }
+
   @media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } .kpi .value { font-size: 30px; } }
   @media (max-width: 540px) { #app { padding: 18px 14px 40px; } .brand h1 { font-size: 19px; } .live span.txt { display: none; } }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
@@ -160,6 +180,19 @@
 
   <div class="footer">Tayanti · Panel interno de reservas<span class="sep">·</span>Actualización automática en tiempo real</div>
 </div>
+
+<div id="modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <h3 id="modalTitle">Confirmar</h3>
+    <p id="modalMsg"></p>
+    <div class="modal-actions">
+      <button class="m-ghost" id="modalCancel">No</button>
+      <button class="m-ok" id="modalOk">Sí</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script type="module">
@@ -324,19 +357,52 @@ function accionesHTML(x) {
   return '<span class="acciones-none">—</span>';
 }
 
+function toast(msg, tipo = 'ok') {
+  const el = $('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + tipo;
+  el.hidden = false;
+  requestAnimationFrame(() => el.classList.add('show'));
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.classList.remove('show'); setTimeout(() => { el.hidden = true; }, 250); }, 3200);
+}
+
+function confirmar(titulo, mensaje, peligro = false) {
+  return new Promise((resolve) => {
+    $('modalTitle').textContent = titulo;
+    $('modalMsg').textContent = mensaje;
+    $('modalOk').className = 'm-ok' + (peligro ? ' danger' : '');
+    $('modalOk').textContent = peligro ? 'Sí, cancelar' : 'Sí';
+    $('modal').hidden = false;
+    const cerrar = (val) => {
+      $('modal').hidden = true;
+      $('modalOk').onclick = $('modalCancel').onclick = $('modal').onclick = null;
+      resolve(val);
+    };
+    $('modalOk').onclick = () => cerrar(true);
+    $('modalCancel').onclick = () => cerrar(false);
+    $('modal').onclick = (ev) => { if (ev.target === $('modal')) cerrar(false); };
+  });
+}
+
 $('tablaWrap').addEventListener('click', async (e) => {
   const btn = e.target.closest('button[data-accion]');
   if (!btn) return;
   const { accion, id } = btn.dataset;
-  if (accion === 'cancelada' && !confirm('¿Seguro que quieres cancelar esta reserva?')) return;
+  if (accion === 'cancelada') {
+    const ok = await confirmar('Cancelar reserva', 'Esta reserva quedará marcada como cancelada. ¿Quieres continuar?', true);
+    if (!ok) return;
+  }
   const grupo = btn.closest('.acciones');
   grupo.querySelectorAll('button').forEach(b => b.disabled = true);
   const { error } = await sb.from('reservations').update({ status: accion }).eq('id', id);
   if (error) {
     grupo.querySelectorAll('button').forEach(b => b.disabled = false);
-    alert('No se pudo actualizar la reserva: ' + error.message);
+    toast('No se pudo actualizar: ' + error.message, 'err');
     return;
   }
+  const msg = accion === 'confirmada' ? 'Reserva confirmada' : accion === 'completada' ? 'Reserva completada' : 'Reserva cancelada';
+  toast(msg, accion === 'cancelada' ? 'info' : 'ok');
   cargar();
 });
 
