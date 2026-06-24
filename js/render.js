@@ -102,21 +102,85 @@ export function renderDias(porDia) {
   });
 }
 
-// --- Tabla de próximas reservas --------------------------------------------
+// --- Tabla de reservas con filtros por fecha -------------------------------
+
+// Suma `n` días a una fecha 'YYYY-MM-DD' (a mediodía UTC para evitar saltos por DST).
+function sumarDias(iso, n) {
+  const d = new Date(iso + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+// Domingo de la semana en curso (para el control de fin de semana).
+function finDeSemana(iso) {
+  const dow = new Date(iso + 'T12:00:00Z').getUTCDay(); // 0 = domingo
+  return sumarDias(iso, dow === 0 ? 0 : 7 - dow);
+}
+
+// Filtros disponibles: etiqueta + predicado sobre la fecha de la reserva.
+function construirFiltros(hoy) {
+  const manana = sumarDias(hoy, 1);
+  const pasado = sumarDias(hoy, 2);
+  const finSem = finDeSemana(hoy);
+  return [
+    { key: 'hoy',    label: 'Hoy',    sub: 'hoy',           test: (f) => f === hoy },
+    { key: 'manana', label: 'Mañana', sub: 'mañana',        test: (f) => f === manana },
+    { key: 'pasado', label: 'Pasado', sub: 'pasado mañana', test: (f) => f === pasado },
+    { key: 'semana', label: 'Semana', sub: 'esta semana',   test: (f) => f >= hoy && f <= finSem },
+    { key: 'todas',  label: 'Todas',  sub: 'historial completo', test: () => true },
+  ];
+}
+
+let ultimasReservas = [];
+let filtroTabla = 'hoy'; // por defecto: control del día
+let filtrosWired = false;
+
 export function renderTabla(reservas) {
+  ultimasReservas = reservas;
   const hoy = hoyPeru();
-  const prox = reservas.filter((x) => x.fecha >= hoy).slice(0, MAX_FILAS_TABLA);
-  if (!prox.length) {
-    $('tablaWrap').innerHTML = '<div class="empty">No hay reservas para hoy ni próximas.</div>';
+  const filtros = construirFiltros(hoy);
+  const activo = filtros.find((f) => f.key === filtroTabla) || filtros[0];
+
+  // Chips de filtro, cada uno con su conteo.
+  $('filtros').innerHTML = filtros.map((f) => {
+    const n = reservas.filter((x) => f.test(x.fecha)).length;
+    return `<button class="chip${f.key === activo.key ? ' active' : ''}" data-filtro="${f.key}">${f.label}<span class="n">${n}</span></button>`;
+  }).join('');
+
+  if (!filtrosWired) {
+    $('filtros').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-filtro]');
+      if (!btn) return;
+      filtroTabla = btn.dataset.filtro;
+      renderTabla(ultimasReservas);
+    });
+    filtrosWired = true;
+  }
+
+  // "Todas" (historial) ordena de la más reciente a la más antigua;
+  // el resto en orden cronológico ascendente.
+  const asc = (a, b) => (a.fecha_hora > b.fecha_hora ? 1 : -1);
+  const desc = (a, b) => (a.fecha_hora < b.fecha_hora ? 1 : -1);
+  const filas = reservas
+    .filter((x) => activo.test(x.fecha))
+    .sort(filtroTabla === 'todas' ? desc : asc)
+    .slice(0, MAX_FILAS_TABLA);
+
+  $('tablaSub').textContent = filas.length
+    ? `${filas.length} reserva${filas.length === 1 ? '' : 's'} · ${activo.sub}`
+    : activo.sub;
+
+  if (!filas.length) {
+    $('tablaWrap').innerHTML = `<div class="empty">No hay reservas para ${activo.sub}.</div>`;
     return;
   }
-  const filas = prox.map((x) => {
+  const cuerpo = filas.map((x) => {
     const fecha = new Date(x.fecha_hora).toLocaleDateString('es-PE', { weekday: 'short', day: '2-digit', month: 'short' });
     const est = ESTADOS[x.estado] || { label: x.estado };
     // `cliente` viene de WhatsApp → se escapa para evitar XSS.
     return `<tr><td class="name">${escapeHtml(x.cliente) || '—'}</td><td>${escapeHtml(fecha)}</td><td>${escapeHtml(x.hora)}</td><td>${escapeHtml(x.personas)}</td><td><span class="badge b-${escapeHtml(x.estado)}">${escapeHtml(est.label)}</span></td><td>${accionesHTML(x)}</td></tr>`;
   }).join('');
-  $('tablaWrap').innerHTML = `<table><thead><tr><th>Cliente</th><th>Fecha</th><th>Hora</th><th>Personas</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${filas}</tbody></table>`;
+  $('tablaWrap').innerHTML = `<table><thead><tr><th>Cliente</th><th>Fecha</th><th>Hora</th><th>Personas</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${cuerpo}</tbody></table>`;
 }
 
 // Botones de acción según el estado actual (el id es un UUID de Supabase, seguro).

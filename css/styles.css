@@ -65,6 +65,16 @@ button.primary:disabled { opacity: .6; cursor: default; transform: none; box-sha
 .legend span { display: flex; align-items: center; gap: 6px; }
 .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 
+.panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+.panel-head h3 { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
+.panel-head .sub { margin: 3px 0 0; }
+.filtros { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; font-family: inherit; transition: background .15s var(--ease), border-color .15s var(--ease), color .15s var(--ease), transform .12s var(--ease); }
+.chip:hover { color: var(--text); border-color: var(--accent-soft); transform: translateY(-1px); }
+.chip .n { font-size: 11px; font-weight: 700; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--surface-2); color: var(--muted); display: inline-flex; align-items: center; justify-content: center; }
+.chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip.active .n { background: rgba(255,255,255,.22); color: #fff; }
+
 .table-scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; min-width: 640px; }
 thead th { text-align: left; font-size: 11px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 0 14px 12px; border-bottom: 1px solid var(--line); }
