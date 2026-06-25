@@ -37,31 +37,63 @@
     </div>
   </div>
 
-  <div class="kpis" id="kpis"></div>
+  <nav class="viewnav" id="viewnav">
+    <button class="navbtn active" data-vista="panel">📊 Panel</button>
+    <button class="navbtn" data-vista="registro">📒 Registro</button>
+  </nav>
 
-  <div class="grid2">
-    <div class="panel" style="animation-delay:.12s">
-      <h3>Reservas por día</h3><div class="sub">Últimos 14 días</div>
-      <div class="chart-wrap"><canvas id="chartDias"></canvas></div>
-    </div>
-    <div class="panel" style="animation-delay:.18s">
-      <h3>Por estado</h3><div class="sub">Hoy y próximas</div>
-      <div class="chart-wrap" style="height:200px"><canvas id="chartEstado"></canvas></div>
-      <div class="legend" id="estadoLegend"></div>
-    </div>
-  </div>
+  <section id="vistaPanel">
+    <div class="kpis" id="kpis"></div>
 
-  <div class="panel" style="animation-delay:.24s">
-    <div class="panel-head">
-      <div>
-        <h3>Reservas</h3>
-        <div class="sub" id="tablaSub">Ordenadas por fecha y hora</div>
+    <div class="grid2">
+      <div class="panel" style="animation-delay:.12s">
+        <h3>Reservas por día</h3><div class="sub">Últimos 14 días</div>
+        <div class="chart-wrap"><canvas id="chartDias"></canvas></div>
       </div>
-      <div class="filtros" id="filtros"></div>
+      <div class="panel" style="animation-delay:.18s">
+        <h3>Por estado</h3><div class="sub">Hoy y próximas</div>
+        <div class="chart-wrap" style="height:200px"><canvas id="chartEstado"></canvas></div>
+        <div class="legend" id="estadoLegend"></div>
+      </div>
     </div>
-    <div class="table-scroll" id="tablaWrap"></div>
-    <div class="updated" id="updated"></div>
-  </div>
+
+    <div class="panel" style="animation-delay:.24s">
+      <div class="panel-head">
+        <div>
+          <h3>Reservas</h3>
+          <div class="sub" id="tablaSub">Ordenadas por fecha y hora</div>
+        </div>
+        <div class="filtros" id="filtros"></div>
+      </div>
+      <div class="table-scroll" id="tablaWrap"></div>
+      <div class="updated" id="updated"></div>
+    </div>
+  </section>
+
+  <section id="vistaRegistro" hidden>
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h3>Registro de reservas</h3>
+          <div class="sub" id="registroSub">Historial mensual para control general</div>
+        </div>
+        <div class="month-nav">
+          <button class="ghost-icon" id="mesPrev" aria-label="Mes anterior">‹</button>
+          <span class="month-label" id="mesLabel">—</span>
+          <button class="ghost-icon" id="mesNext" aria-label="Mes siguiente">›</button>
+        </div>
+      </div>
+
+      <div class="reg-stats" id="regStats"></div>
+
+      <div class="reg-toolbar">
+        <input type="search" id="regBuscar" placeholder="Buscar por cliente…" autocomplete="off" />
+        <button class="ghost" id="regCsv">⬇ Exportar CSV</button>
+      </div>
+
+      <div class="table-scroll" id="registroTabla"></div>
+    </div>
+  </section>
 
   <div class="footer">Tayanti · Panel interno de reservas<span class="sep">·</span>Actualización automática en tiempo real</div>
 </div>
